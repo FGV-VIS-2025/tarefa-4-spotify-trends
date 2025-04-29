@@ -1,38 +1,66 @@
-# create-svelte
+# Spotify Trends 🎧📊
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+Este projeto faz parte da Tarefa 4 da disciplina de Visualização de Dados (FGV, 2025), onde desenvolvemos uma visualização interativa baseada nos dados de streaming do Spotify para entender as tendências musicais globais e no Brasil.
 
-## Creating a project
+---
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Integrantes
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+- Gustavo Bianchi 
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+- João Machado 
 
-## Developing
+- Vinícius Nascimento 
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+---
 
-```bash
-npm run dev
+## 🎯 Objetivo
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+Nosso objetivo é permitir que o usuário explore facilmente as músicas mais ouvidas por região, período, artista e ranking, promovendo insights sobre popularidade musical e tendências culturais globais.
 
-## Building
+---
 
-To create a production version of your app:
+## 🧩 Justificativa das Decisões de Design
 
-```bash
-npm run build
-```
+Tomamos diversas decisões de design para tornar a visualização clara, acessível e visualmente atraente:
 
-You can preview the production build with `npm run preview`.
+### Codificações Visuais:
+- **Cores:** Utilizamos um tema escuro (modo *Dark*) para combinar com a identidade do Spotify e facilitar a leitura prolongada.
+- **Cartões com capa do álbum:** Tornam a navegação mais visual e engajante do que listas ou tabelas.
+- **Textos destacados:** Nome do artista, música e número de streams em verde para reforçar o sucesso da música.
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+### Interações:
+- Filtros por **data**, **região**, **rank** e **artista**, permitindo que o usuário explore os dados por diferentes dimensões.
+- Link lateral com navegação simples entre páginas ("Home", "Global", "Brasil", "Github").
+
+### Técnicas Consideradas:
+- Inicialmente exploramos gráficos de linha e barras (para evolução de streams), mas percebemos que, para o escopo desta tarefa, uma visualização por cartões com filtros seria mais direta e acessível ao público geral.
+- Por fim, escolhemos treemap pois seria mais esteticamente "bonito" e interativo, como de modo a clicar nas capas para ouvirmos a música.
+---
+
+## 🛠️ Processo de Desenvolvimento
+
+### Tempo Estimado:
+- **Total estimado:** Aproximadamente 24 horas (8 horas por membro)
+- **Tarefas que levaram mais tempo:**
+  - Ajustes de layout e responsividade.
+  - Implementação de filtros funcionais e compatibilidade com múltiplos critérios.
+  - Implementação do treemap em D3.
+
+---
+
+## 📦 Fontes e Inspirações
+
+- **Fonte dos dados:** [Kaggle - Spotify Charts](https://www.kaggle.com/datasets/dhruvildave/spotify-charts)
+- **Inspiração visual:** Interface do próprio Spotify Web 
+
+---
+
+## 🤖 Uso de GPT / IA
+
+Utilizamos o ChatGPT para:
+- Revisar conceitos de codificações visuais e boas práticas de design de interação.
+- Refatorar pequenos trechos de código Svelte para manter legibilidade.
+- Nos ajudar a interpretar erros de codificação no caminho.
+
+Todas as respostas foram revisadas e adaptadas para garantir consistência e autenticidade.
