@@ -1,7 +1,6 @@
 <script>
-  import { onMount } from 'svelte';
-  import * as d3 from 'd3';
   import { createEventDispatcher } from 'svelte';
+  import * as d3 from 'd3';
 
   export let data = [];
   export let limit = 10;
@@ -44,26 +43,54 @@
   }
 
   $: if (data.length > 0) {
-    const parsed = data
-      .map(d => ({
-        ...d,
-        total_streams: +d.total_streams
-      }))
-      .filter(d => !isNaN(d.total_streams) && d.total_streams > 0)
-      .sort((a, b) => b.total_streams - a.total_streams);
+    console.log('Dados recebidos:', data);
 
-    const grouped = d3.group(parsed, d => d.artist);
+    const artistData = [];
 
+    // Agrupar as músicas por artista e somar os streams
+    data.forEach(artist => {
+      const artistName = artist.name;
+      const songData = {};
+
+      // Para cada música do artista, somar os streams por título
+      artist.children.forEach(song => {
+        const songTitle = song.title;
+        if (songData[songTitle]) {
+          songData[songTitle].total_streams += song.total_streams;
+        } else {
+          songData[songTitle] = {
+            title: songTitle,
+            total_streams: song.total_streams,
+            trackId: song.trackId
+          };
+        }
+      });
+
+      // Agrupar as músicas somadas para esse artista
+      artistData.push({
+        name: artistName,
+        children: Object.values(songData)  // Criar o array de músicas agregadas
+      });
+    });
+
+    // Agora transformamos o artistaData em uma hierarquia para o gráfico de Treemap
     const treeData = {
-      children: Array.from(grouped, ([artist, songs]) => ({
-        name: artist,
-        children: songs
+      children: artistData.map(artist => ({
+        name: artist.name,
+        children: artist.children.map(song => ({
+          title: song.title,
+          total_streams: song.total_streams,
+          trackId: song.trackId
+        }))
       }))
     };
 
+    console.log(treeData);
+
+    // Criar a hierarquia e aplicar o treemap
     const root = d3.hierarchy(treeData)
-      .sum(d => d.total_streams)
-      .sort((a, b) => b.value - a.value);
+      .sum(d => d.total_streams)  // Somar os streams para gerar o tamanho dos nós
+      .sort((a, b) => b.value - a.value);  // Ordenar do maior para o menor
 
     d3.treemap()
       .size([width, height])
@@ -71,24 +98,22 @@
       .paddingOuter(4)
       (root);
 
-    // Promise.all(
-    //   root.leaves().map(async node => {
-    //     const thumbnail = await fetchThumbnail(node.data.trackId);
-    //     if (thumbnail) {
-    //       node.data.thumbnail = thumbnail;
-    //     }
-    //     return node;
-    //   })
-    // ).then(finalNodes => {
-    //   nodes = finalNodes.slice(0, limit);
-    // });
-
-    nodes = root.leaves().slice(0, limit);
+    // Processar os nós e buscar as imagens dos álbuns (por exemplo)
+    //Promise.all(
+      //root.leaves().map(async node => {
+        //const thumbnail = await fetchThumbnail(node.data.trackId);
+        //if (thumbnail) {
+        //  node.data.thumbnail = thumbnail;
+        //}
+        //return node;
+      //})
+    //).then(finalNodes => {
+      //nodes = finalNodes.slice(0, limit); // Limitar o número de nós a serem mostrados
+    //});
   }
 </script>
 
 <svg width={width} height={height} xmlns="http://www.w3.org/2000/svg">
-
   <defs>
     {#each nodes as node (node.data.trackId)}
       <clipPath id={`clip-${node.data.trackId}`}>
@@ -121,12 +146,14 @@
         style="transition: all 0.2s ease;"
       />
 
-      <image
-        href={node.data.imageUrl}
-        width={node.x1 - node.x0}
-        height={node.y1 - node.y0}
-        preserveAspectRatio="xMidYMid slice"
-      />
+      {#if node.data.thumbnail}
+        <image
+          href={node.data.thumbnail}
+          width={node.x1 - node.x0}
+          height={node.y1 - node.y0}
+          preserveAspectRatio="xMidYMid slice"
+        />
+      {/if}
 
       <rect
         width={node.x1 - node.x0}
@@ -156,47 +183,9 @@
           text-anchor="middle"
           style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);"
         >
-          {node.data.total_streams.toLocaleString()} streams
+          {node.data.total_streams.toLocaleString()} 
         </text>
       {/if}
     </g>
   {/each}
-
-  {#each Array.from(new Set(nodes.map(n => n.parent))) as parent (parent.data.name)}
-    {#if parent}
-      <g transform={`translate(${parent.x0},${parent.y0})`}>
-        <rect
-          width={parent.x1 - parent.x0}
-          height={parent.y1 - parent.y0}
-          fill="none"
-          stroke="#1DB954"
-          stroke-width="3"
-          style="transition: all 0.3s ease;"
-        />
-        
-        {#if (parent.x1 - parent.x0) > 100 && (parent.y1 - parent.y0) > 40 && parent.children.length > 1}
-          <text
-            x={(parent.x1 - parent.x0) / 2}
-            y="15"
-            fill=#1DB954
-            font-size="12"
-            font-weight="bold"
-            text-anchor="middle"
-            style="text-shadow: 0 1px 2px black;"
-          >
-            {parent.data.name}
-          </text>
-        {/if}
-      </g>
-    {/if}
-  {/each}
 </svg>
-
-<style>
-  svg {
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    background: #121212;
-    transition: background 0.3s ease;
-  }
-</style>

@@ -1,8 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Chart from '../../lib/Chart.svelte';
-  import datagraph from '$lib/dados_grafico.json';
-  import datajson from '$lib/dados_tabela.json';
+  import * as d3 from 'd3';
 
   let start = '';
   let end = '';
@@ -11,8 +10,8 @@
   let region = '';
   let rank = '';
   let limit = 10;
-  // let datajson = [];
-  // let datagraph = []; 
+  let datajson = [];
+  let datagraph = []; 
   let loading = false;
   let currentTrack = '';
   let controller;
@@ -21,104 +20,93 @@
     return str.split('T')[0];
   }
 
-  async function fetchData() {
+  async function getCSV() {
+    if (!limit || limit < 1) limit = 1;
+    if (limit > 50) limit = 50;
 
-    // if (!limit || limit < 1) limit = 1;
-    // if (limit > 50) limit = 50;
+    loading = true;
+    
+    // Carregar o arquivo CSV
+    const csvData = await d3.csv('/charts_global.csv');
+    
+    // Filtragem dos dados
+    const filteredData = csvData.filter(d => {
+      let valid = true;
 
-    // controller?.abort();
-    // controller = new AbortController();
-    // loading = true;
+      if (start && end) {
+        valid = valid && new Date(d.date) >= new Date(start) && new Date(d.date) <= new Date(end);
+      } else if (start) {
+        valid = valid && new Date(d.date) >= new Date(start);
+      } else if (end) {
+        valid = valid && new Date(d.date) <= new Date(end);
+      }
 
-    // const qs = new URLSearchParams({ limit: limit.toString() });
-    // if (start)    qs.set('start', start);
-    // if (end)      qs.set('end', end);
-    // if (title)    qs.set('title', title);
-    // if (artist)   qs.set('artist', artist);
-    // if (region)   qs.set('region', region);
-    // if (rank)     qs.set('rank', rank);
+      if (title) valid = valid && d.title.toLowerCase().includes(title.toLowerCase());
+      if (artist) valid = valid && d.artist.toLowerCase().includes(artist.toLowerCase());
+      if (region) valid = valid && d.region.toLowerCase().includes(region.toLowerCase());
+      if (rank) {
+        const [minRank, maxRank] = rank.split('-').map(Number);
+        valid = valid && ((minRank && d.rank >= minRank) || (maxRank && d.rank <= maxRank));
+      }
 
-    // try {
-    //     const res = await fetch(`/chart?${qs}`, { signal: controller.signal });
-    //     if (res.ok) {
-    //         const responseData = await res.json();
-    //         datajson = responseData.data || [];
-    //         datagraph = responseData.graph || [];
-    //         console.log('Dados da tabela:', datajson);
-    //         console.log('Dados do gráfico:', datagraph);
+      return valid;
+    });
 
-    //         datajson.sort((a, b) => new Date(a.date) - new Date(b.date));
-    //     } else {
-    //         datajson = [];
-    //         datagraph = [];
-    //     }
-    // } catch (e) {
-    //     if (e.name !== 'AbortError') console.error(e);
-    //     datajson = [];
-    //     datagraph = [];
-    // } finally {
-    //     loading = false;
-    // }
+
+    // Atualizar dados para a tabela
+    datajson = filteredData;
+
+    // Preparar dados para o gráfico
+    const graphData = d3.group(filteredData, d => d.artist);
+    datagraph = Array.from(graphData, ([artist, songs]) => ({
+      name: artist,
+      children: songs.map(song => ({
+        title: song.title,
+        total_streams: +song.streams, // A soma de streams
+        trackId: song.url, // Se você precisar disso para o ícone, etc.
+      }))
+    }));
+
+    loading = false;
   }
 
-  // function onStart(e)  { start  = e.target.value; fetchData(); }
-  // function onEnd(e)    { end    = e.target.value; fetchData(); }
-  // function onTitle(e)  { title  = e.target.value; fetchData(); }
-  // function onArtist(e) { artist = e.target.value; fetchData(); }
-  // function onRegion(e) { region = e.target.value; fetchData(); }
-  // function onRank(e) { rank = e.target.value; fetchData(); }
+  function onStart(e) { start = e.target.value; getCSV(); }
+  function onEnd(e) { end = e.target.value; getCSV(); }
+  function onTitle(e) { title = e.target.value; getCSV(); }
+  function onArtist(e) { artist = e.target.value; getCSV(); }
+  function onRegion(e) { region = e.target.value; getCSV(); }
+  function onRank(e) { rank = e.target.value; getCSV(); }
 
   function play(id) {
     currentTrack = `https://open.spotify.com/embed/track/${id}`;
   }
 
-  onMount(fetchData);
+  onMount(getCSV);
 </script>
 
 <svelte:head>
   <title>Charts Top</title>
 </svelte:head>
 
-<!-- <div class="filters">
-  <input type="date" bind:value={start}  on:input={onStart}  placeholder="Data início" />
-  <input type="date" bind:value={end}    on:input={onEnd}    placeholder="Data fim" />
-  <input placeholder="Música"  bind:value={title}  on:input={onTitle}  />
+<div class="filters">
+  <input type="date" bind:value={start} on:input={onStart} placeholder="Data início" />
+  <input type="date" bind:value={end} on:input={onEnd} placeholder="Data fim" />
+  <input placeholder="Música" bind:value={title} on:input={onTitle} />
   <input placeholder="Artista" bind:value={artist} on:input={onArtist} />
   <input placeholder="Região" bind:value={region} on:input={onRegion} />
   <input placeholder="Rank (intervalo '1-50')" bind:value={rank} on:input={onRank} />
-  <input placeholder="Qtd. Músicas" type="number" min="1" bind:value={limit} on:input={fetchData} />
-</div> -->
-
-<div class="filters">
-  <input type="date" bind:value={start}  placeholder="Data início" />
-  <input type="date" bind:value={end}    placeholder="Data fim" />
-  <input placeholder="Música"  bind:value={title}  />
-  <input placeholder="Artista" bind:value={artist} />
-  <input placeholder="Região" bind:value={region} />
-  <input placeholder="Rank (intervalo '1-50')" bind:value={rank} />
-  <input placeholder="Qtd. Músicas" type="number" min="1" bind:value={limit} on:input={fetchData} />
+  <input placeholder="Qtd. Músicas" type="number" min="1" bind:value={limit} on:input={getCSV} />
 </div>
 
 {#if loading}
   <p>Carregando…</p>
 {:else}
-  <!-- Seção do gráfico -->
   <div class="chart-container">
     <h2>Top Músicas por Streams</h2>
     <Chart data={datagraph} on:playtrack={(e) => currentTrack = e.detail} {limit} />
   </div>
 
-  <!-- Seção da tabela  -->
-  <div class="grid">
-    {#each datajson as { date, rank, title, artist, region, trackId }}
-      <div class="card" on:click={() => play(trackId)}>
-        <small>{formatDate(date)} – #{rank}</small><br/>
-        <strong>{title}</strong><br/>
-        <small>{artist};</small>
-        <small>{region}</small>
-      </div>
-    {/each}
-  </div>
+
 {/if}
 
 {#if currentTrack}
@@ -132,6 +120,7 @@
     style="position: fixed; bottom: 10px; left: 10px;"
   ></iframe>
 {/if}
+
 
 <style>
 .filters {
