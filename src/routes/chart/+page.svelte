@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import Chart from '../../lib/Chart.svelte';
+  import LineChart from '../../lib/LineChart.svelte';
   import * as d3 from 'd3';
 
   // default mínimo/máximo
@@ -90,6 +91,16 @@
   }
 
   onMount(getCSV);
+
+  let trendData = [];
+
+  function showTrend({ title, artist }) {
+    const filtered = datajson.filter(d => d.title === title && d.artist === artist);
+    trendData = filtered.map(d => ({
+      date: new Date(d.date),
+      streams: +d.streams
+    })).sort((a, b) => a.date - b.date);
+  }
 </script>
 
 <svelte:head>
@@ -186,7 +197,12 @@
 {:else}
   <div class="chart-container">
     <h2>Top Músicas por Streams</h2>
-    <Chart data={datagraph} on:playtrack={(e) => play(e.detail)} {limit}/>
+    <Chart
+      data={datagraph}
+      on:playtrack={(e) => play(e.detail)}
+      on:showtrend={(e) => showTrend(e.detail)}
+      {limit}
+    />
   </div>
 {/if}
 
@@ -199,6 +215,14 @@
     style="position: fixed; bottom: 10px; left: 10px;">
   </iframe>
 {/if}
+
+{#if trendData.length}
+  <h3 class="text-lg font-semibold mt-6">
+    Evolução de streams: {trendData[0].date.toLocaleDateString()} → {trendData.at(-1).date.toLocaleDateString()}
+  </h3>
+  <LineChart data={trendData} />
+{/if}
+
 
 <style>
   .filters {

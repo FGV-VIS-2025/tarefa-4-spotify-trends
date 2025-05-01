@@ -23,6 +23,14 @@
   function select(trackId) {
     selectedId = trackId;
     play(trackId);
+
+    const node = nodes.find(n => n.data.trackId === trackId);
+    if (node) {
+      dispatch('showtrend', {
+        title: node.data.title,
+        artist: node.parent.data.name 
+      });
+    }
   }
 
   // Transformando os dados em formato adequado para o d3.treemap()
