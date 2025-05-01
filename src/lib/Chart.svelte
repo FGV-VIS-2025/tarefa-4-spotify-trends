@@ -1,9 +1,9 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import * as d3 from 'd3';
 
   export let data = [];
-  export let limit = 10;
+  export let limit = 10; // Número máximo de folhas (nós) a serem exibidas no Treemap
 
   let nodes = [];
   let images = {};
@@ -15,23 +15,6 @@
 
   const dispatch = createEventDispatcher();
 
-  async function fetchThumbnail(trackId) {
-    if (!trackId) return null;
-    if (images[trackId]) return images[trackId];
-
-    try {
-      const response = await fetch(`/chart?thumbnail=true&trackId=${trackId}`);
-      if (response.ok) {
-        const json = await response.json();
-        images[trackId] = json.thumbnail;
-        return json.thumbnail;
-      }
-    } catch (error) {
-      console.error('Erro ao buscar thumbnail:', error);
-    }
-    return null;
-  }
-
   function play(trackId) {
     const trackUrl = `https://open.spotify.com/embed/track/${trackId}`;
     dispatch('playtrack', trackUrl);
@@ -42,17 +25,16 @@
     play(trackId);
   }
 
+  // Transformando os dados em formato adequado para o d3.treemap()
   $: if (data.length > 0) {
     console.log('Dados recebidos:', data);
 
     const artistData = [];
 
-    // Agrupar as músicas por artista e somar os streams
     data.forEach(artist => {
       const artistName = artist.name;
       const songData = {};
 
-      // Para cada música do artista, somar os streams por título
       artist.children.forEach(song => {
         const songTitle = song.title;
         if (songData[songTitle]) {
@@ -66,14 +48,12 @@
         }
       });
 
-      // Agrupar as músicas somadas para esse artista
       artistData.push({
         name: artistName,
-        children: Object.values(songData)  // Criar o array de músicas agregadas
+        children: Object.values(songData)
       });
     });
 
-    // Agora transformamos o artistaData em uma hierarquia para o gráfico de Treemap
     const treeData = {
       children: artistData.map(artist => ({
         name: artist.name,
@@ -85,31 +65,40 @@
       }))
     };
 
-    console.log(treeData);
+    let allSongs = [];
+    treeData.children.forEach(artist => {
+      allSongs = allSongs.concat(artist.children); 
+    });
 
-    // Criar a hierarquia e aplicar o treemap
-    const root = d3.hierarchy(treeData)
-      .sum(d => d.total_streams)  // Somar os streams para gerar o tamanho dos nós
-      .sort((a, b) => b.value - a.value);  // Ordenar do maior para o menor
+    allSongs.sort((a, b) => b.total_streams - a.total_streams);
+    const topSongs = allSongs.slice(0, limit);
+
+    const topTreeData = {
+      children: treeData.children.map(artist => {
+        const topSongsForArtist = artist.children.filter(song => {
+          return topSongs.some(topSong => topSong.trackId === song.trackId);
+        });
+
+        return {
+          name: artist.name,
+          children: topSongsForArtist
+        };
+      }).filter(artist => artist.children.length > 0)
+    };
+
+    console.log(topTreeData);
+
+    // Aplica o layout de Treemap para calcular as posições
+    const root = d3.hierarchy(topTreeData)
+      .sum(d => d.total_streams) 
+      .sort((a, b) => b.total_streams - a.total_streams); 
 
     d3.treemap()
       .size([width, height])
-      .paddingInner(2)
-      .paddingOuter(4)
+      .padding(1)
       (root);
 
-    // Processar os nós e buscar as imagens dos álbuns (por exemplo)
-    //Promise.all(
-      //root.leaves().map(async node => {
-        //const thumbnail = await fetchThumbnail(node.data.trackId);
-        //if (thumbnail) {
-        //  node.data.thumbnail = thumbnail;
-        //}
-        //return node;
-      //})
-    //).then(finalNodes => {
-      //nodes = finalNodes.slice(0, limit); // Limitar o número de nós a serem mostrados
-    //});
+    nodes = root.leaves().slice(0, limit); 
   }
 </script>
 
@@ -146,14 +135,6 @@
         style="transition: all 0.2s ease;"
       />
 
-      {#if node.data.thumbnail}
-        <image
-          href={node.data.thumbnail}
-          width={node.x1 - node.x0}
-          height={node.y1 - node.y0}
-          preserveAspectRatio="xMidYMid slice"
-        />
-      {/if}
 
       <rect
         width={node.x1 - node.x0}

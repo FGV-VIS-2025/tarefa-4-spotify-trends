@@ -11,6 +11,7 @@
   let region = '';
   let rank = '';
   let limit = 10;
+  let limitNew = 10;
   let datajson = [];
   let datagraph = []; 
   let loading = false;
@@ -33,8 +34,8 @@
 
   async function getCSV() {
     // garante limites
-    if (!limit || limit < 1) limit = 1;
-    if (limit > 50) limit = 50;
+    if (!limitNew || limitNew < 1) limitNew = 1;
+    if (limitNew > 50) limitNew = 50;
     loading = true;
 
     const csvData = await d3.csv('/charts_global.csv');
@@ -73,6 +74,8 @@
         trackId: song.url,
       }))
     }));
+
+    limit = limitNew;
 
     loading = false;
   }
@@ -157,7 +160,7 @@
       min="1"
       max="50"
       placeholder="Qtd. Músicas"
-      bind:value={limit}
+      bind:value={limitNew}
       title="Máximo de folhas no treemap (1–50)" />
   </div>
 
@@ -183,7 +186,7 @@
 {:else}
   <div class="chart-container">
     <h2>Top Músicas por Streams</h2>
-    <Chart data={datagraph} on:playtrack={(e) => play(e.detail)} {limit} />
+    <Chart data={datagraph} on:playtrack={(e) => play(e.detail)} {limit}/>
   </div>
 {/if}
 
