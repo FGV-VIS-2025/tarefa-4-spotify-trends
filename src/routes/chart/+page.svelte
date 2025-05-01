@@ -3,8 +3,9 @@
   import Chart from '../../lib/Chart.svelte';
   import * as d3 from 'd3';
 
-  let start = '';
-  let end = '';
+  // default mínimo/máximo
+  let start = '2017-01-01';
+  let end   = '2021-12-20';
   let title = '';
   let artist = '';
   let region = '';
@@ -14,68 +15,72 @@
   let datagraph = []; 
   let loading = false;
   let currentTrack = '';
-  let controller;
 
-  function formatDate(str) {
-    return str.split('T')[0];
-  }
+  const regions = [
+    'Andorra','Argentina','Australia','Austria','Belgium','Bolivia','Brazil',
+    'Bulgaria','Canada','Chile','Colombia','Costa Rica','Czech Republic',
+    'Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Estonia',
+    'Finland','France','Germany','Global','Greece','Guatemala','Honduras',
+    'Hong Kong','Hungary','Iceland','India','Indonesia','Ireland','Israel',
+    'Italy','Japan','Latvia','Lithuania','Luxembourg','Malaysia','Mexico',
+    'Morocco','Netherlands','New Zealand','Nicaragua','Norway','Panama',
+    'Paraguay','Peru','Philippines','Poland','Portugal','Romania','Russia',
+    'Saudi Arabia','Singapore','Slovakia','South Africa','South Korea',
+    'Spain','Sweden','Switzerland','Taiwan','Thailand','Turkey','Ukraine',
+    'United Arab Emirates','United Kingdom','United States','Uruguay',
+    'Vietnam'
+  ];
 
   async function getCSV() {
+    // garante limites
     if (!limit || limit < 1) limit = 1;
     if (limit > 50) limit = 50;
-
     loading = true;
-    
-    // Carregar o arquivo CSV
+
     const csvData = await d3.csv('/charts_global.csv');
-    
-    // Filtragem dos dados
     const filteredData = csvData.filter(d => {
       let valid = true;
+      const date = new Date(d.date);
 
-      if (start && end) {
-        valid = valid && new Date(d.date) >= new Date(start) && new Date(d.date) <= new Date(end);
-      } else if (start) {
-        valid = valid && new Date(d.date) >= new Date(start);
-      } else if (end) {
-        valid = valid && new Date(d.date) <= new Date(end);
-      }
+      // datas
+      valid = valid
+        && (!start || date >= new Date(start))
+        && (!end   || date <= new Date(end));
 
-      if (title) valid = valid && d.title.toLowerCase().includes(title.toLowerCase());
-      if (artist) valid = valid && d.artist.toLowerCase().includes(artist.toLowerCase());
-      if (region) valid = valid && d.region.toLowerCase().includes(region.toLowerCase());
+      // prefixo
+      if (title)  valid = valid && d.title.toLowerCase().startsWith(title.toLowerCase());
+      if (artist) valid = valid && d.artist.toLowerCase().startsWith(artist.toLowerCase());
+
+      // região exata
+      if (region) valid = valid && d.region === region;
+
+      // rank intervalo
       if (rank) {
-        const [minRank, maxRank] = rank.split('-').map(Number);
-        valid = valid && ((minRank && d.rank >= minRank) || (maxRank && d.rank <= maxRank));
+        const [minR, maxR] = rank.split('-').map(Number);
+        valid = valid && ((minR && d.rank >= minR) || (maxR && d.rank <= maxR));
       }
 
       return valid;
     });
 
-
-    // Atualizar dados para a tabela
     datajson = filteredData;
-
-    // Preparar dados para o gráfico
     const graphData = d3.group(filteredData, d => d.artist);
     datagraph = Array.from(graphData, ([artist, songs]) => ({
       name: artist,
       children: songs.map(song => ({
         title: song.title,
-        total_streams: +song.streams, // A soma de streams
-        trackId: song.url, // Se você precisar disso para o ícone, etc.
+        total_streams: +song.streams,
+        trackId: song.url,
       }))
     }));
 
     loading = false;
   }
 
-  function onStart(e) { start = e.target.value; getCSV(); }
-  function onEnd(e) { end = e.target.value; getCSV(); }
-  function onTitle(e) { title = e.target.value; getCSV(); }
-  function onArtist(e) { artist = e.target.value; getCSV(); }
-  function onRegion(e) { region = e.target.value; getCSV(); }
-  function onRank(e) { rank = e.target.value; getCSV(); }
+  // dispara o filtro só ao clicar
+  function applyFilters() {
+    getCSV();
+  }
 
   function play(id) {
     currentTrack = `https://open.spotify.com/embed/track/${id}`;
@@ -89,13 +94,88 @@
 </svelte:head>
 
 <div class="filters">
-  <input type="date" bind:value={start} on:input={onStart} placeholder="Data início" />
-  <input type="date" bind:value={end} on:input={onEnd} placeholder="Data fim" />
-  <input placeholder="Música" bind:value={title} on:input={onTitle} />
-  <input placeholder="Artista" bind:value={artist} on:input={onArtist} />
-  <input placeholder="Região" bind:value={region} on:input={onRegion} />
-  <input placeholder="Rank (intervalo '1-50')" bind:value={rank} on:input={onRank} />
-  <input placeholder="Qtd. Músicas" type="number" min="1" bind:value={limit} on:input={getCSV} />
+  <div class="filter-item">
+    <label>Data inicial</label>
+    <input
+      type="date"
+      bind:value={start}
+      min="2017-01-01"
+      max="2021-12-20"
+      title="Entre 2017-01-01 e 2021-12-20" />
+  </div>
+
+  <div class="filter-item">
+    <label>Data final</label>
+    <input
+      type="date"
+      bind:value={end}
+      min="2017-01-01"
+      max="2021-12-20"
+      title="Entre 2017-01-01 e 2021-12-20" />
+  </div>
+
+  <div class="filter-item">
+    <label>Música</label>
+    <input
+      placeholder="Começo do título"
+      bind:value={title}
+      title="Busca pelo início do nome da música" />
+  </div>
+
+  <div class="filter-item">
+    <label>Artista</label>
+    <input
+      placeholder="Começo do nome"
+      bind:value={artist}
+      title="Busca pelo início do nome do artista" />
+  </div>
+
+  <div class="filter-item">
+    <label>País</label>
+    <select
+      bind:value={region}
+      title="Escolha o país (Global = nada filtrado)">
+      <option value="">Global</option>
+      {#each regions as r}
+        <option value={r}>{r}</option>
+      {/each}
+    </select>
+  </div>
+
+  <div class="filter-item">
+    <label>Rank (ex: 1-10)</label>
+    <input
+      placeholder="1-200"
+      bind:value={rank}
+      title="Intervalo de posições p.ex. 1-10" />
+  </div>
+
+  <div class="filter-item">
+    <label>Qtd. Músicas</label>
+    <input
+      type="number"
+      min="1"
+      max="50"
+      placeholder="Qtd. Músicas"
+      bind:value={limit}
+      title="Máximo de folhas no treemap (1–50)" />
+  </div>
+
+  <div class="filter-item">
+    <button on:click={applyFilters}>🔍 Aplicar filtros</button>
+  </div>
+</div>
+
+<div class="explanation">
+  <p>Este treemap soma as streams de cada música que entrou no Top 200 do Spotify entre
+     <strong>2017-01-01</strong> e <strong>2021-12-20</strong>. Sem filtro de região, os dados são globais;
+     com filtro, considera só as streams no Top 200 daquele país.</p>
+  <p><strong>Filtros:</strong><br>
+     • <strong>Datas</strong>: Valores entre 2017-01-01 e 2021-12-20.<br>
+     • <strong>Música / Artista</strong>: Busca pelo começo do nome.<br>
+     • <strong>País</strong>: Playlist Top 200 do país escolhido.<br>
+     • <strong>Rank</strong>: Intervalo de posição (soma só as streams de músicas desse intervalo!).<br>
+     • <strong>Qtd. Músicas</strong>: Quantas folhas aparecem no treemap.</p>
 </div>
 
 {#if loading}
@@ -103,62 +183,121 @@
 {:else}
   <div class="chart-container">
     <h2>Top Músicas por Streams</h2>
-    <Chart data={datagraph} on:playtrack={(e) => currentTrack = e.detail} {limit} />
+    <Chart data={datagraph} on:playtrack={(e) => play(e.detail)} {limit} />
   </div>
-
-
 {/if}
 
 {#if currentTrack}
   <iframe
     src={currentTrack}
-    width="300"
-    height="80"
-    frameborder="0"
-    allowtransparency="true"
+    width="300" height="80"
+    frameborder="0" allowtransparency="true"
     allow="encrypted-media"
-    style="position: fixed; bottom: 10px; left: 10px;"
-  ></iframe>
+    style="position: fixed; bottom: 10px; left: 10px;">
+  </iframe>
 {/if}
 
-
 <style>
-.filters {
+  .filters {
     display: flex;
+    justify-content: space-between;
     gap: 10px;
     margin-bottom: 1rem;
     align-items: center;
     flex-wrap: wrap;
   }
 
-  .filters input {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    background-color: #121212;
-    color: white;
-    border: none;
-    border-radius: 500px; 
-    font-size: 14px;
-    outline: none;
-    min-width: 200px;
-  }
-
-  .filters input::placeholder {
-    color: #b3b3b3; 
-  }
-
   .filters input:focus {
     background-color: #2a2a2a;
   }
 
+  .filters select:focus {
+    background-color: #2a2a2a;
+  }
+
   .filters input {
+    flex: 1;
+    padding: 1rem 1rem;
+    background-color: #121212;
+    color: white;
+    border: none;
+    border-radius: 500px;
+    font-size: 14px;
+    outline: none;
+    min-width: 200px;
     box-shadow: inset 0 0 0 1px #535353;
   }
+
+  .filters select {
+    flex: 1;
+    padding: 1rem 1rem;
+    background-color: #121212;
+    color: white;
+    border: none;
+    border-radius: 500px;
+    font-size: 14px;
+    outline: none;
+    min-width: 230px;
+    box-shadow: inset 0 0 0 1px #535353;
+  }
+
+  .filters input::placeholder {
+    color: #b3b3b3;
+  }
+
+  .filters select::placeholder {
+    color: #b3b3b3;
+  }
+
+  .filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .filter-item label {
+    font-size: 0.75rem;
+    color: #b3b3b3;
+    margin-bottom: 4px;
+  }
+
+  .filter-item button {
+    padding: 0.75rem 1.5rem;
+    margin-top: 24px;
+    background: #1ed760;
+    color: #121212;
+    border: none;
+    border-radius: 9999px;
+    min-width: 230px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .filter-item button:hover {
+    opacity: 0.9;
+  }
+
+  .explanation {
+    scrollbar-color: hsla(0,0%,100%,.3) transparent;
+    --fallback-fonts: Helvetica Neue,helvetica,arial,Hiragino Kaku Gothic ProN,Meiryo,MS Gothic;
+    --content-spacing: 16px;
+    --background-base: #121212;
+    --text-base: #fff;
+    --encore-text-size-smaller: 1.2rem;
+    cursor: default;
+    user-select: none;
+    box-sizing: border-box;
+    font-weight: 400;
+    margin-bottom: 1rem;
+  }
+
+
   .grid {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
   }
+
   .card {
     width: 150px;
     padding: 10px;
@@ -168,9 +307,11 @@
     cursor: pointer;
     transition: .2s;
   }
+
   .card:hover {
     background: #f0f0f0;
   }
+
   .chart-container {
     margin-bottom: 2rem;
     padding: 1rem;
