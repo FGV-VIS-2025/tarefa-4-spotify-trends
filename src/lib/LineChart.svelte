@@ -6,7 +6,7 @@
 
   let svg;
 
-  const margin = { top: 20, right: 30, bottom: 30, left: 50 };
+  const margin = { top: 20, right: 30, bottom: 50, left: 50 };
   const width = 1000;
   const height = 400;
 
@@ -44,10 +44,23 @@
 
     g.append('g')
       .attr('transform', `translate(0,${height})`)
-      .call(d3.axisBottom(x).tickFormat(d3.timeFormat('%b %Y')));
+      .call(d3.axisBottom(x).tickFormat(d3.timeFormat('%b %Y')))
+      .append('text') 
+      .attr('x', width / 2)
+      .attr('y', margin.bottom - 15)
+      .attr('fill', 'currentColor')
+      .attr('text-anchor', 'middle')
+      .text('Data');
 
     g.append('g')
-      .call(d3.axisLeft(y).tickFormat(d3.format('~s')));
+      .call(d3.axisLeft(y).tickFormat(d3.format('~s')))
+      .append('text') 
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -height / 2)
+      .attr('y', -40)
+      .attr('fill', 'currentColor')
+      .attr('text-anchor', 'middle')
+      .text('Streams');
 
     g.append('path')
       .datum(parsed)
