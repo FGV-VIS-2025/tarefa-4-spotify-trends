@@ -86,9 +86,14 @@
     getCSV();
   }
 
-  function play(id) {
-    currentTrack = `https://open.spotify.com/embed/track/${id}`;
+  function play(trackId) {
+  if (trackId) {
+    const trackUrl = `https://open.spotify.com/embed/track/${trackId.split('/').pop()}`;
+    currentTrack = trackUrl;
+  } else {
+    console.error('Track ID inválido:', trackId);
   }
+}
 
   onMount(getCSV);
 
@@ -98,7 +103,8 @@
     const filtered = datajson.filter(d => d.title === title && d.artist === artist);
     trendData = filtered.map(d => ({
       date: new Date(d.date),
-      streams: +d.streams
+      streams: +d.streams,
+      rank: d.rank
     })).sort((a, b) => a.date - b.date);
   }
 </script>

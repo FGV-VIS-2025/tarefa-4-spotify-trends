@@ -6,7 +6,7 @@
 
   let svg;
 
-  const margin = { top: 20, right: 30, bottom: 50, left: 50 };
+  const margin = { top: 20, right: 100, bottom: 50, left: 50 };
   const width = 1000;
   const height = 400;
 
@@ -17,20 +17,31 @@
     const parsed = data.map(d => ({
       ...d,
       date: new Date(d.date),
-      streams: +d.streams
+      streams: +d.streams,
+      rank: +d.rank
     }));
 
     const x = d3.scaleTime()
       .domain(d3.extent(parsed, d => d.date))
       .range([0, width]);
 
-    const y = d3.scaleLinear()
+    const yStreams = d3.scaleLinear()
       .domain([0, d3.max(parsed, d => d.streams)]).nice()
       .range([height, 0]);
 
-    const line = d3.line()
+    const yRank = d3.scaleLinear()
+      .domain([1, 200]) // Eixo Y fixo de Rank entre 1 e 200
+      .range([0, height]); 
+
+    const lineStreams = d3.line()
       .x(d => x(d.date))
-      .y(d => y(d.streams));
+      .y(d => yStreams(d.streams))
+      .curve(d3.curveMonotoneX); 
+
+    const lineRank = d3.line()
+      .x(d => x(d.date))
+      .y(d => yRank(d.rank))
+      .curve(d3.curveMonotoneX); 
 
     // Limpa SVG antigo
     d3.select(svg).selectAll("*").remove();
@@ -42,7 +53,8 @@
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    g.append('g')
+    // Eixo X (Data)
+    const xAxisGroup = g.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x).tickFormat(d3.timeFormat('%b %Y')))
       .append('text') 
@@ -50,24 +62,64 @@
       .attr('y', margin.bottom - 15)
       .attr('fill', 'currentColor')
       .attr('text-anchor', 'middle')
+      .style("font-size", "16px")
       .text('Data');
 
+    // Eixo Y (Streams)
     g.append('g')
-      .call(d3.axisLeft(y).tickFormat(d3.format('~s')))
+      .call(d3.axisLeft(yStreams).tickFormat(d3.format('~s')))
       .append('text') 
       .attr('transform', 'rotate(-90)')
       .attr('x', -height / 2)
       .attr('y', -40)
       .attr('fill', 'currentColor')
       .attr('text-anchor', 'middle')
+      .style("font-size", "16px")
       .text('Streams');
 
+    // Eixo Y (Rank)
+    g.append('g')
+      .attr('transform', `translate(${width}, 0)`)
+      .call(d3.axisRight(yRank).tickFormat(d3.format('~s')))
+      .append('text') 
+      .attr('transform', 'rotate(-90)')
+      .attr('x', -height / 2)
+      .attr('y', 40)
+      .attr('fill', 'currentColor')
+      .attr('text-anchor', 'middle')
+      .style("font-size", "16px")
+      .text('Rank');
+
+    // Linha para Streams
     g.append('path')
       .datum(parsed)
       .attr('fill', 'none')
-      .attr('stroke', '#1db954')
-      .attr('stroke-width', 2)
-      .attr('d', line);
+      .attr('stroke', '#1db954') // Cor de linha para Streams
+      .attr('stroke-width', 3)
+      .attr('stroke-linejoin', 'round')
+      .attr('stroke-linecap', 'round')
+      .attr('d', lineStreams)
+      .attr('filter', 'url(#drop-shadow)'); // Adiciona sombra
+
+    // Linha para Rank
+    g.append('path')
+      .datum(parsed)
+      .attr('fill', 'none')
+      .attr('stroke', '#ff6600') // Cor de linha para Rank
+      .attr('stroke-width', 3)
+      .attr('stroke-linejoin', 'round')
+      .attr('stroke-linecap', 'round')
+      .attr('d', lineRank)
+      .attr('filter', 'url(#drop-shadow)'); // Adiciona sombra
+
+    // Definindo o filtro para sombra
+    g.append('defs')
+      .append('filter')
+      .attr('id', 'drop-shadow')
+      .append('feDropShadow')
+      .attr('dx', 2)
+      .attr('dy', 2)
+      .attr('stdDeviation', 3);
 
     // Tooltip
     const focus = g.append('g').style('display', 'none');
@@ -99,6 +151,12 @@
       .attr('fill', 'white')
       .attr('id', 'tooltip-streams');
 
+    focus.append('text')
+      .attr('x', 18)
+      .attr('y', 32)
+      .attr('fill', 'white')
+      .attr('id', 'tooltip-rank');
+
     g.append('rect')
       .attr('class', 'overlay')
       .attr('width', width)
@@ -116,10 +174,43 @@
         const d1 = parsed[i];
         const d = x0 - d0.date > d1.date - x0 ? d1 : d0;
 
-        focus.attr('transform', `translate(${x(d.date)},${y(d.streams)})`);
+        focus.attr('transform', `translate(${x(d.date)},${yStreams(d.streams)})`);
         focus.select('#tooltip-date').text(d3.timeFormat('%d/%m/%Y')(d.date));
         focus.select('#tooltip-streams').text(`${d.streams.toLocaleString()} streams`);
+        focus.select('#tooltip-rank').text(`Rank: ${d.rank}`);
       });
+
+    // Legenda
+    const legend = g.append('g')
+      .attr('transform', `translate(${width + 30}, 30)`);
+
+    legend.append('circle')
+      .attr('cx', 0)
+      .attr('cy', 0)
+      .attr('r', 6)
+      .attr('fill', '#1db954');
+
+    legend.append('text')
+      .attr('x', 10)
+      .attr('y', 0)
+      .attr('dy', '.35em')
+      .text('Streams')
+      .style('font-size', '14px')
+      .style('fill', 'currentColor');
+
+    legend.append('circle')
+      .attr('cx', 0)
+      .attr('cy', 20)
+      .attr('r', 6)
+      .attr('fill', '#ff6600');
+
+    legend.append('text')
+      .attr('x', 10)
+      .attr('y', 20)
+      .attr('dy', '.35em')
+      .text('Rank')
+      .style('font-size', '14px')
+      .style('fill', 'currentColor');
   });
 </script>
 

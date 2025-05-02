@@ -35,7 +35,7 @@
 
   // Transformando os dados em formato adequado para o d3.treemap()
   $: if (data.length > 0) {
-    console.log('Dados recebidos:', data);
+    //console.log('Dados recebidos:', data);
 
     const artistData = [];
 
@@ -94,8 +94,6 @@
       }).filter(artist => artist.children.length > 0)
     };
 
-    console.log(topTreeData);
-
     // Aplica o layout de Treemap para calcular as posições
     const root = d3.hierarchy(topTreeData)
       .sum(d => d.total_streams) 
@@ -143,6 +141,14 @@
         style="transition: all 0.2s ease;"
       />
 
+      {#if node.data.thumbnail}
+        <image
+          href={node.data.thumbnail}
+          width={node.x1 - node.x0}
+          height={node.y1 - node.y0}
+          preserveAspectRatio="xMidYMid slice"
+        />
+      {/if}
 
       <rect
         width={node.x1 - node.x0}
@@ -172,9 +178,39 @@
           text-anchor="middle"
           style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);"
         >
-          {node.data.total_streams.toLocaleString()} 
+          {node.data.total_streams.toLocaleString()} streams
         </text>
       {/if}
     </g>
   {/each}
+  
+  {#each Array.from(new Set(nodes.map(n => n.parent))) as parent (parent.data.name)}
+    {#if parent}
+      <g transform={`translate(${parent.x0},${parent.y0})`}>
+        <rect
+          width={parent.x1 - parent.x0}
+          height={parent.y1 - parent.y0}
+          fill="none"
+          stroke="#1DB954"
+          stroke-width="3"
+          style="transition: all 0.3s ease;"
+        />
+        
+        {#if (parent.x1 - parent.x0) > 100 && (parent.y1 - parent.y0) > 40}
+          <text
+            x={(parent.x1 - parent.x0) / 2}
+            y="12" 
+            fill="#1DB954"
+            font-size="10"
+            font-weight="bold"
+            text-anchor="middle"
+            style="text-shadow: 0 1px 2px black;"
+          >
+            {parent.data.name}
+          </text>
+        {/if}
+      </g>
+    {/if}
+  {/each}
 </svg>
+
