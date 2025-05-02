@@ -106,6 +106,25 @@
 
     nodes = root.leaves().slice(0, limit); 
   }
+
+  let tooltipEl;
+
+  function showTooltip(event, node) {
+    tooltipEl.style.left = `${event.pageX + 12}px`;
+    tooltipEl.style.top = `${event.pageY + 12}px`;
+    tooltipEl.style.display = 'block';
+    tooltipEl.innerHTML = `
+      <strong>${node.data.title}</strong><br>
+      Artista: ${node.parent.data.name}<br>
+      Streams: ${node.data.total_streams.toLocaleString()}<br>
+      <em>Clique para ouvir</em>
+    `;
+  }
+
+  // Esconde o tooltip
+  function hideTooltip() {
+    tooltipEl.style.display = 'none';
+  }
 </script>
 
 <svg width={width} height={height} xmlns="http://www.w3.org/2000/svg">
@@ -126,8 +145,15 @@
   {#each nodes as node (node.data.trackId)}
     <g 
       transform={`translate(${node.x0},${node.y0})`} 
-      on:mouseover={() => hoveredId = node.data.trackId}
-      on:mouseout={() => hoveredId = null}
+      on:mouseover={(e) => {
+        hoveredId = node.data.trackId;
+        showTooltip(e, node);
+      }}
+      on:mousemove={(e) => showTooltip(e, node)}
+      on:mouseout={() => {
+        hoveredId = null;
+        hideTooltip();
+      }}
       on:click={() => select(node.data.trackId)}
       style="cursor: pointer;"
       clip-path={`url(#clip-${node.data.trackId})`}
@@ -214,3 +240,21 @@
   {/each}
 </svg>
 
+<div bind:this={tooltipEl} class="tooltip" />
+
+<style>
+  .tooltip {
+    position: absolute;
+    background: #121212;
+    color: white;
+    border: 1px solid #1DB954;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  }
+</style>
