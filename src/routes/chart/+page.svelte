@@ -107,43 +107,43 @@
 
 <div class="filters">
   <div class="filter-item">
-    <label>Data inicial
+    <label>Data inicial</label>
     <input
       type="date"
       bind:value={start}
       min="2017-01-01"
       max="2021-12-20"
-      title="Entre 2017-01-01 e 2021-12-20" /></label>
+      title="Entre 2017-01-01 e 2021-12-20" />
   </div>
 
   <div class="filter-item">
-    <label>Data final
+    <label>Data final</label>
     <input
       type="date"
       bind:value={end}
       min="2017-01-01"
       max="2021-12-20"
-      title="Entre 2017-01-01 e 2021-12-20" /></label>
+      title="Entre 2017-01-01 e 2021-12-20" />
   </div>
 
   <div class="filter-item">
-    <label>Música
+    <label>Música</label>
     <input
       placeholder="Começo do título"
       bind:value={title}
-      title="Busca pelo início do nome da música" /></label>
+      title="Busca pelo início do nome da música" />
   </div>
 
   <div class="filter-item">
-    <label>Artista
+    <label>Artista</label>
     <input
       placeholder="Começo do nome"
       bind:value={artist}
-      title="Busca pelo início do nome do artista" /></label>
+      title="Busca pelo início do nome do artista" />
   </div>
 
   <div class="filter-item">
-    <label>País
+    <label>País</label>
     <select
       bind:value={region}
       title="Escolha o país (Global = nada filtrado)">
@@ -151,26 +151,26 @@
       {#each regions as r}
         <option value={r}>{r}</option>
       {/each}
-    </select></label>
+    </select>
   </div>
 
   <div class="filter-item">
-    <label>Rank (ex: 1-10)
+    <label>Rank (ex: 1-10)</label>
     <input
       placeholder="1-200"
       bind:value={rank}
-      title="Intervalo de posições p.ex. 1-10" /></label>
+      title="Intervalo de posições p.ex. 1-10" />
   </div>
 
   <div class="filter-item">
-    <label>Qtd. Músicas
+    <label>Qtd. Músicas</label>
     <input
       type="number"
       min="1"
       max="50"
       placeholder="Qtd. Músicas"
       bind:value={limitNew}
-      title="Máximo de folhas no treemap (1–50)" /></label>
+      title="Máximo de folhas no treemap (1–50)" />
   </div>
 
   <div class="filter-item">
@@ -317,7 +317,7 @@
     margin-bottom: 1rem;
   }
 
-  /*
+
   .grid {
     display: flex;
     flex-wrap: wrap;
@@ -337,7 +337,6 @@
   .card:hover {
     background: #f0f0f0;
   }
-  */
 
   .chart-container {
     margin-bottom: 2rem;
