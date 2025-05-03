@@ -102,48 +102,48 @@
 </script>
 
 <svelte:head>
-  <title>Charts Top</title>
+  <title>Spotify Trends</title>
 </svelte:head>
 
 <div class="filters">
   <div class="filter-item">
-    <label>Data inicial</label>
+    <label>Data inicial
     <input
       type="date"
       bind:value={start}
       min="2017-01-01"
       max="2021-12-20"
-      title="Entre 2017-01-01 e 2021-12-20" />
+      title="Entre 2017-01-01 e 2021-12-20" /></label>
   </div>
 
   <div class="filter-item">
-    <label>Data final</label>
+    <label>Data final
     <input
       type="date"
       bind:value={end}
       min="2017-01-01"
       max="2021-12-20"
-      title="Entre 2017-01-01 e 2021-12-20" />
+      title="Entre 2017-01-01 e 2021-12-20" /></label>
   </div>
 
   <div class="filter-item">
-    <label>Música</label>
+    <label>Música
     <input
       placeholder="Começo do título"
       bind:value={title}
-      title="Busca pelo início do nome da música" />
+      title="Busca pelo início do nome da música" /></label>
   </div>
 
   <div class="filter-item">
-    <label>Artista</label>
+    <label>Artista
     <input
       placeholder="Começo do nome"
       bind:value={artist}
-      title="Busca pelo início do nome do artista" />
+      title="Busca pelo início do nome do artista" /></label>
   </div>
 
   <div class="filter-item">
-    <label>País</label>
+    <label>País
     <select
       bind:value={region}
       title="Escolha o país (Global = nada filtrado)">
@@ -151,26 +151,26 @@
       {#each regions as r}
         <option value={r}>{r}</option>
       {/each}
-    </select>
+    </select></label>
   </div>
 
   <div class="filter-item">
-    <label>Rank (ex: 1-10)</label>
+    <label>Rank (ex: 1-10)
     <input
       placeholder="1-200"
       bind:value={rank}
-      title="Intervalo de posições p.ex. 1-10" />
+      title="Intervalo de posições p.ex. 1-10" /></label>
   </div>
 
   <div class="filter-item">
-    <label>Qtd. Músicas</label>
+    <label>Qtd. Músicas
     <input
       type="number"
       min="1"
       max="50"
       placeholder="Qtd. Músicas"
       bind:value={limitNew}
-      title="Máximo de folhas no treemap (1–50)" />
+      title="Máximo de folhas no treemap (1–50)" /></label>
   </div>
 
   <div class="filter-item">
@@ -206,6 +206,7 @@
 
 {#if currentTrack}
   <iframe
+    title="Player de música do Spotify"
     src={currentTrack}
     width="300" height="80"
     frameborder="0" allowtransparency="true"
@@ -316,7 +317,7 @@
     margin-bottom: 1rem;
   }
 
-
+  /*
   .grid {
     display: flex;
     flex-wrap: wrap;
@@ -336,6 +337,7 @@
   .card:hover {
     background: #f0f0f0;
   }
+  */
 
   .chart-container {
     margin-bottom: 2rem;

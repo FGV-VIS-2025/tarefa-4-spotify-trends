@@ -159,6 +159,8 @@
   <!-- quadrados das músicas -->
   {#each nodes as node (node.data.trackId)}
     <g 
+      role="button"
+      tabindex="0"
       transform={`translate(${node.x0},${node.y0})`} 
       on:mouseover={(e) => {
         hoveredId = node.data.trackId;
@@ -169,10 +171,25 @@
         hoveredId = null;
         hideTooltip();
       }}
+      on:focus={(e) => {
+        hoveredId = node.data.trackId;
+        showTooltip(e, node);
+      }}
+      on:blur={() => {
+        hoveredId = null;
+        hideTooltip();
+      }}
+      on:keydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          select(node.data.trackId);
+        }
+      }}
       on:click={() => select(node.data.trackId)}
       style="cursor: pointer;"
       clip-path={`url(#clip-${node.data.trackId})`}
     >
+
       <rect
         width={node.x1 - node.x0}
         height={node.y1 - node.y0}

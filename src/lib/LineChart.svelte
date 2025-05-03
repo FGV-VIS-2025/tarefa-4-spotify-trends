@@ -214,11 +214,12 @@
   });
 </script>
 
-<style>
+
+<!-- <style>
   .tooltip text {
     font-size: 12px;
     pointer-events: none;
   }
-</style>
+</style> -->
 
 <svg bind:this={svg}></svg>
