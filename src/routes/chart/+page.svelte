@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Chart from '../../lib/Chart.svelte';
   import LineChart from '../../lib/LineChart.svelte';
+  import { base } from '$app/paths';
   import * as d3 from 'd3';
 
   // default mínimo/máximo
@@ -27,10 +28,10 @@
     if (limitNew > 50) limitNew = 50;
     loading = true;
 
-    let filePath = '/dados_global.json'; // padrão global
-    if (region === 'Brazil') filePath = '/dados_brazil.json';
-    else if (region === 'Peru') filePath = '/dados_peru.json';
-    else if (region === 'United States') filePath = '/dados_united_states.json';
+    let filePath = `${base}/dados_global.json`; // padrão global
+    if (region === 'Brazil') filePath = `${base}/dados_brazil.json`;
+    else if (region === 'Peru') filePath = `${base}/dados_peru.json`;
+    else if (region === 'United States') filePath = `${base}/dados_united_states.json`;
 
     const jsonData = await d3.json(filePath);
 
