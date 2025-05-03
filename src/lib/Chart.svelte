@@ -1,10 +1,9 @@
 <script>
-  import { onMount } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import * as d3 from 'd3';
-  import { createEventDispatcher } from 'svelte';
 
   export let data = [];
-  export let limit = 10;
+  export let limit = 10; // Número máximo de folhas (nós) a serem exibidas no Treemap
 
   let nodes = [];
   let images = {};
@@ -16,23 +15,6 @@
 
   const dispatch = createEventDispatcher();
 
-  async function fetchThumbnail(trackId) {
-    if (!trackId) return null;
-    if (images[trackId]) return images[trackId];
-
-    try {
-      const response = await fetch(`/chart?thumbnail=true&trackId=${trackId}`);
-      if (response.ok) {
-        const json = await response.json();
-        images[trackId] = json.thumbnail;
-        return json.thumbnail;
-      }
-    } catch (error) {
-      console.error('Erro ao buscar thumbnail:', error);
-    }
-    return null;
-  }
-
   function play(trackId) {
     const trackUrl = `https://open.spotify.com/embed/track/${trackId}`;
     dispatch('playtrack', trackUrl);
@@ -41,54 +23,126 @@
   function select(trackId) {
     selectedId = trackId;
     play(trackId);
+
+    const node = nodes.find(n => n.data.trackId === trackId);
+    if (node) {
+      dispatch('showtrend', {
+        title: node.data.title,
+        artist: node.parent.data.name 
+      });
+    }
   }
 
+  // Transformando os dados em formato adequado para o d3.treemap()
   $: if (data.length > 0) {
-    const parsed = data
-      .map(d => ({
-        ...d,
-        total_streams: +d.total_streams
-      }))
-      .filter(d => !isNaN(d.total_streams) && d.total_streams > 0)
-      .sort((a, b) => b.total_streams - a.total_streams);
+    const artistData = [];
 
-    const grouped = d3.group(parsed, d => d.artist);
+    data.forEach(artist => {
+      const artistName = artist.name;
+      const songData = {};
+
+      artist.children.forEach(song => {
+        const songTitle = song.title;
+        if (songData[songTitle]) {
+          songData[songTitle].total_streams += song.total_streams;
+        } else {
+          songData[songTitle] = {
+            title: songTitle,
+            total_streams: song.total_streams,
+            trackId: song.trackId
+          };
+        }
+      });
+
+      artistData.push({
+        name: artistName,
+        children: Object.values(songData)
+      });
+    });
 
     const treeData = {
-      children: Array.from(grouped, ([artist, songs]) => ({
-        name: artist,
-        children: songs
+      children: artistData.map(artist => ({
+        name: artist.name,
+        children: artist.children.map(song => ({
+          title: song.title,
+          total_streams: song.total_streams,
+          trackId: song.trackId
+        }))
       }))
     };
 
-    const root = d3.hierarchy(treeData)
-      .sum(d => d.total_streams)
-      .sort((a, b) => b.value - a.value);
+    let allSongs = [];
+    treeData.children.forEach(artist => {
+      allSongs = allSongs.concat(artist.children); 
+    });
+
+    allSongs.sort((a, b) => b.total_streams - a.total_streams);
+    const topSongs = allSongs.slice(0, limit);
+
+    const topTreeData = {
+      children: treeData.children.map(artist => {
+        const topSongsForArtist = artist.children.filter(song =>
+          topSongs.some(topSong => topSong.trackId === song.trackId)
+        );
+
+        return {
+          name: artist.name,
+          children: topSongsForArtist
+        };
+      }).filter(artist => artist.children.length > 0)
+    };
+
+    const root = d3.hierarchy(topTreeData)
+      .sum(d => d.total_streams) 
+      .sort((a, b) => b.total_streams - a.total_streams); 
 
     d3.treemap()
       .size([width, height])
-      .paddingInner(2)
-      .paddingOuter(4)
+      .padding(1)
       (root);
 
-    // Promise.all(
-    //   root.leaves().map(async node => {
-    //     const thumbnail = await fetchThumbnail(node.data.trackId);
-    //     if (thumbnail) {
-    //       node.data.thumbnail = thumbnail;
-    //     }
-    //     return node;
-    //   })
-    // ).then(finalNodes => {
-    //   nodes = finalNodes.slice(0, limit);
-    // });
+    const leafNodes = root.leaves().slice(0, limit);
 
-    nodes = root.leaves().slice(0, limit);
+    Promise.all(
+      leafNodes.map(async node => {
+        const id = node.data.trackId;
+        try {
+          const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${id}`);
+          if (res.ok) {
+            const json = await res.json();
+            node.data.thumbnail = json.thumbnail_url;
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar thumbnail de ${id}:`, err);
+        }
+        return node;
+      })
+    ).then(final => {
+      nodes = final;
+    });
+  }
+
+  let tooltipEl;
+
+  function showTooltip(event, node) {
+    tooltipEl.style.left = `${event.pageX + 12}px`;
+    tooltipEl.style.top = `${event.pageY + 12}px`;
+    tooltipEl.style.display = 'block';
+    tooltipEl.innerHTML = `
+      <strong>${node.data.title}</strong><br>
+      Artista: ${node.parent.data.name}<br>
+      Streams: ${node.data.total_streams.toLocaleString()}<br>
+      <em>Clique para ouvir</em>
+    `;
+  }
+
+  // Esconde o tooltip
+  function hideTooltip() {
+    tooltipEl.style.display = 'none';
   }
 </script>
 
 <svg width={width} height={height} xmlns="http://www.w3.org/2000/svg">
-
   <defs>
     {#each nodes as node (node.data.trackId)}
       <clipPath id={`clip-${node.data.trackId}`}>
@@ -106,8 +160,15 @@
   {#each nodes as node (node.data.trackId)}
     <g 
       transform={`translate(${node.x0},${node.y0})`} 
-      on:mouseover={() => hoveredId = node.data.trackId}
-      on:mouseout={() => hoveredId = null}
+      on:mouseover={(e) => {
+        hoveredId = node.data.trackId;
+        showTooltip(e, node);
+      }}
+      on:mousemove={(e) => showTooltip(e, node)}
+      on:mouseout={() => {
+        hoveredId = null;
+        hideTooltip();
+      }}
       on:click={() => select(node.data.trackId)}
       style="cursor: pointer;"
       clip-path={`url(#clip-${node.data.trackId})`}
@@ -121,12 +182,14 @@
         style="transition: all 0.2s ease;"
       />
 
-      <image
-        href={node.data.imageUrl}
-        width={node.x1 - node.x0}
-        height={node.y1 - node.y0}
-        preserveAspectRatio="xMidYMid slice"
-      />
+      {#if node.data.thumbnail}
+        <image
+          href={node.data.thumbnail}
+          width={node.x1 - node.x0}
+          height={node.y1 - node.y0}
+          preserveAspectRatio="xMidYMid slice"
+        />
+      {/if}
 
       <rect
         width={node.x1 - node.x0}
@@ -161,7 +224,7 @@
       {/if}
     </g>
   {/each}
-
+  
   {#each Array.from(new Set(nodes.map(n => n.parent))) as parent (parent.data.name)}
     {#if parent}
       <g transform={`translate(${parent.x0},${parent.y0})`}>
@@ -174,12 +237,12 @@
           style="transition: all 0.3s ease;"
         />
         
-        {#if (parent.x1 - parent.x0) > 100 && (parent.y1 - parent.y0) > 40 && parent.children.length > 1}
+        {#if (parent.x1 - parent.x0) > 100 && (parent.y1 - parent.y0) > 40}
           <text
             x={(parent.x1 - parent.x0) / 2}
-            y="15"
-            fill=#1DB954
-            font-size="12"
+            y="12" 
+            fill="#1DB954"
+            font-size="10"
             font-weight="bold"
             text-anchor="middle"
             style="text-shadow: 0 1px 2px black;"
@@ -192,11 +255,21 @@
   {/each}
 </svg>
 
+<div bind:this={tooltipEl} class="tooltip" />
+
 <style>
-  svg {
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  .tooltip {
+    position: absolute;
     background: #121212;
-    transition: background 0.3s ease;
+    color: white;
+    border: 1px solid #1DB954;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 12px;
+    pointer-events: none;
+    white-space: nowrap;
+    display: none;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   }
 </style>
