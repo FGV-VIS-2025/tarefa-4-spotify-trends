@@ -19,28 +19,22 @@
   let currentTrack = '';
 
   const regions = [
-    'Andorra','Argentina','Australia','Austria','Belgium','Bolivia','Brazil',
-    'Bulgaria','Canada','Chile','Colombia','Costa Rica','Czech Republic',
-    'Denmark','Dominican Republic','Ecuador','Egypt','El Salvador','Estonia',
-    'Finland','France','Germany','Global','Greece','Guatemala','Honduras',
-    'Hong Kong','Hungary','Iceland','India','Indonesia','Ireland','Israel',
-    'Italy','Japan','Latvia','Lithuania','Luxembourg','Malaysia','Mexico',
-    'Morocco','Netherlands','New Zealand','Nicaragua','Norway','Panama',
-    'Paraguay','Peru','Philippines','Poland','Portugal','Romania','Russia',
-    'Saudi Arabia','Singapore','Slovakia','South Africa','South Korea',
-    'Spain','Sweden','Switzerland','Taiwan','Thailand','Turkey','Ukraine',
-    'United Arab Emirates','United Kingdom','United States','Uruguay',
-    'Vietnam'
+    'Brazil', 'United States', 'Peru'
   ];
 
   async function getCSV() {
-    // garante limites
     if (!limitNew || limitNew < 1) limitNew = 1;
     if (limitNew > 50) limitNew = 50;
     loading = true;
 
-    const csvData = await d3.csv('/charts_global.csv');
-    const filteredData = csvData.filter(d => {
+    let filePath = '/dados_global.json'; // padrão global
+    if (region === 'Brazil') filePath = '/dados_brazil.json';
+    else if (region === 'Peru') filePath = '/dados_peru.json';
+    else if (region === 'United States') filePath = '/dados_united_states.json';
+
+    const jsonData = await d3.json(filePath);
+
+    const filteredData = jsonData.filter(d => {
       let valid = true;
       const date = new Date(d.date);
 
@@ -53,31 +47,29 @@
       if (title)  valid = valid && d.title.toLowerCase().startsWith(title.toLowerCase());
       if (artist) valid = valid && d.artist.toLowerCase().startsWith(artist.toLowerCase());
 
-      // região exata
-      if (region) valid = valid && d.region === region;
-
       // rank intervalo
       if (rank) {
         const [minR, maxR] = rank.split('-').map(Number);
-        valid = valid && ((minR && d.rank >= minR) || (maxR && d.rank <= maxR));
+        if (!isNaN(minR)) valid = valid && Number(d.rank) >= minR;
+        if (!isNaN(maxR)) valid = valid && Number(d.rank) <= maxR;
       }
 
       return valid;
     });
 
     datajson = filteredData;
+
     const graphData = d3.group(filteredData, d => d.artist);
     datagraph = Array.from(graphData, ([artist, songs]) => ({
       name: artist,
       children: songs.map(song => ({
         title: song.title,
         total_streams: +song.streams,
-        trackId: song.url,
+        trackId: song.url
       }))
     }));
 
     limit = limitNew;
-
     loading = false;
   }
 
@@ -93,7 +85,7 @@
   } else {
     console.error('Track ID inválido:', trackId);
   }
-}
+} 
 
   onMount(getCSV);
 

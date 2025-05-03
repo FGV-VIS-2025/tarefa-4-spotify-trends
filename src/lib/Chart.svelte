@@ -35,8 +35,6 @@
 
   // Transformando os dados em formato adequado para o d3.treemap()
   $: if (data.length > 0) {
-    //console.log('Dados recebidos:', data);
-
     const artistData = [];
 
     data.forEach(artist => {
@@ -83,9 +81,9 @@
 
     const topTreeData = {
       children: treeData.children.map(artist => {
-        const topSongsForArtist = artist.children.filter(song => {
-          return topSongs.some(topSong => topSong.trackId === song.trackId);
-        });
+        const topSongsForArtist = artist.children.filter(song =>
+          topSongs.some(topSong => topSong.trackId === song.trackId)
+        );
 
         return {
           name: artist.name,
@@ -94,7 +92,6 @@
       }).filter(artist => artist.children.length > 0)
     };
 
-    // Aplica o layout de Treemap para calcular as posições
     const root = d3.hierarchy(topTreeData)
       .sum(d => d.total_streams) 
       .sort((a, b) => b.total_streams - a.total_streams); 
@@ -104,7 +101,25 @@
       .padding(1)
       (root);
 
-    nodes = root.leaves().slice(0, limit); 
+    const leafNodes = root.leaves().slice(0, limit);
+
+    Promise.all(
+      leafNodes.map(async node => {
+        const id = node.data.trackId;
+        try {
+          const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${id}`);
+          if (res.ok) {
+            const json = await res.json();
+            node.data.thumbnail = json.thumbnail_url;
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar thumbnail de ${id}:`, err);
+        }
+        return node;
+      })
+    ).then(final => {
+      nodes = final;
+    });
   }
 
   let tooltipEl;
