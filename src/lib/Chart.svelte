@@ -140,7 +140,38 @@
   function hideTooltip() {
     tooltipEl.style.display = 'none';
   }
+
+  const MAX_CHARS = 12;        // máximo de caracteres
+  const TRUNCATE_WIDTH = 150;  
+
+  function getArtistName(parent) {
+    const w = parent.x1 - parent.x0;
+    const name = parent.data.name;
+    if (w < TRUNCATE_WIDTH && name.length > MAX_CHARS) {
+      return name.slice(0, MAX_CHARS) + '…';
+    }
+    return name;
+  }
+
+  const SMALL_PX   = 100;   
+  const MEDIUM_PX  = 20; 
+  const SMALL_LIMIT  = 12;
+  const MEDIUM_LIMIT = 20;
+
+  function getSongTitle(node) {
+    const w = node.x1 - node.x0;
+    const title = node.data.title;
+
+    if (w < SMALL_PX) {
+      return title.length > SMALL_LIMIT ? title.slice(0, SMALL_LIMIT) + '…' : title;
+    } else if (w < MEDIUM_PX) {
+      return title.length > MEDIUM_LIMIT ? title.slice(0, MEDIUM_LIMIT) + '…' : title;
+    }
+    // espaço suficiente: mostra tudo
+    return title;
+  }
 </script>
+
 
 <svg width={width} height={height} xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -225,7 +256,7 @@
           font-weight="bold"
           style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);"
         >
-          {node.data.title}
+          {getSongTitle(node)}
         </text>
 
         <text 
@@ -255,6 +286,7 @@
         />
         
         {#if (parent.x1 - parent.x0) > 100 && (parent.y1 - parent.y0) > 40}
+          <!-- primeiro IF garante que há espaço mínimo pra desenhar texto -->
           <text
             x={(parent.x1 - parent.x0) / 2}
             y="12" 
@@ -264,7 +296,7 @@
             text-anchor="middle"
             style="text-shadow: 0 1px 2px black;"
           >
-            {parent.data.name}
+            {getArtistName(parent)}
           </text>
         {/if}
       </g>
