@@ -194,15 +194,19 @@
 {#if loading}
   <p>Carregando…</p>
 {:else}
-  <div class="chart-container">
-    <h2>Top Músicas por Streams</h2>
-    <Chart
-      data={datagraph}
-      on:playtrack={(e) => play(e.detail)}
-      on:showtrend={(e) => showTrend(e.detail)}
-      {limit}
-    />
-  </div>
+  {#if datagraph.length === 0}
+    <p>Sem resultados! Nenhuma música com essas definições entrou na playlist top 200 desse país!</p>
+  {:else}
+    <div class="chart-container">
+      <h2>Top Músicas por Streams</h2>
+      <Chart
+        data={datagraph}
+        on:playtrack={(e) => play(e.detail)}
+        on:showtrend={(e) => showTrend(e.detail)}
+        {limit}
+      />
+    </div>
+  {/if}
 {/if}
 
 {#if currentTrack}

@@ -125,8 +125,28 @@
   let tooltipEl;
 
   function showTooltip(event, node) {
-    tooltipEl.style.left = `${event.pageX + 12}px`;
-    tooltipEl.style.top = `${event.pageY + 12}px`;
+    const tooltipWidth = 200; 
+    const tooltipHeight = 80; 
+    const offset = 12;
+
+    let x = event.pageX + offset;
+    let y = event.pageY + offset;
+
+    const maxX = window.innerWidth;
+    const maxY = window.innerHeight;
+
+    // Se ultrapassar o lado direito da tela
+    if (x + tooltipWidth > maxX - 100) {
+      x = event.pageX - tooltipWidth - offset;
+    }
+
+    // Se ultrapassar a parte inferior da tela
+    if (y + tooltipHeight > maxY) {
+      y = event.pageY - tooltipHeight - offset;
+    }
+
+    tooltipEl.style.left = `${x}px`;
+    tooltipEl.style.top = `${y}px`;
     tooltipEl.style.display = 'block';
     tooltipEl.innerHTML = `
       <strong>${node.data.title}</strong><br>
