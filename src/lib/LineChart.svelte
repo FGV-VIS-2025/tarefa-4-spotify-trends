@@ -174,11 +174,27 @@
         const d1 = parsed[i];
         const d = x0 - d0.date > d1.date - x0 ? d1 : d0;
 
-        focus.attr('transform', `translate(${x(d.date)},${yStreams(d.streams)})`);
+        const xPos = x(d.date);
+        const yPos = yStreams(d.streams);
+        const tooltipWidth = 160;
+        const offset = 20;
+        
+        if (xPos + tooltipWidth + offset > width) {
+            // Posiciona à esquerda do ponto
+            focus.attr('transform', `translate(${xPos},${yPos})`);
+            focus.select('rect').attr('x', -170);
+            focus.selectAll('text').attr('x', -162);
+        } else {
+            // Posiciona à direita do ponto (padrão)
+            focus.attr('transform', `translate(${xPos},${yPos})`);
+            focus.select('rect').attr('x', 10);
+            focus.selectAll('text').attr('x', 18);
+        }
+        
         focus.select('#tooltip-date').text(d3.timeFormat('%d/%m/%Y')(d.date));
         focus.select('#tooltip-streams').text(`${d.streams.toLocaleString()} streams`);
         focus.select('#tooltip-rank').text(`Rank: ${d.rank}`);
-      });
+    });
 
     // Legenda
     const legend = g.append('g')
