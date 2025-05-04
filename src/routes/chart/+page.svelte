@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Chart from '../../lib/Chart.svelte';
   import LineChart from '../../lib/LineChart.svelte';
+  import BarChart from '../../lib/BarChart.svelte';
   import { base } from '$app/paths';
   import * as d3 from 'd3';
 
@@ -136,8 +137,9 @@
 
 <div class="filters">
   <div class="filter-item">
-    <label>Data inicial</label>
+    <label for="filtro1">Data inicial</label>
     <input
+      id="filtro1"
       type="date"
       bind:value={start}
       min="2017-01-01"
@@ -146,8 +148,9 @@
   </div>
 
   <div class="filter-item">
-    <label>Data final</label>
+    <label for="filtro2">Data final</label>
     <input
+      id="filtro2"
       type="date"
       bind:value={end}
       min="2017-01-01"
@@ -156,24 +159,27 @@
   </div>
 
   <div class="filter-item">
-    <label>Música</label>
+    <label for="filtro3">Música</label>
     <input
+      id="filtro3"
       placeholder="Começo do título"
       bind:value={title}
       title="Busca pelo início do nome da música" />
   </div>
 
   <div class="filter-item">
-    <label>Artista</label>
+    <label for="filtro4">Artista</label>
     <input
+      id="filtro4"
       placeholder="Começo do nome"
       bind:value={artist}
       title="Busca pelo início do nome do artista" />
   </div>
 
   <div class="filter-item">
-    <label>País</label>
+    <label for="filtro5">País</label>
     <select
+      id = "filtro5"
       bind:value={region}
       title="Escolha o país (Global = nada filtrado)">
       <option value="">Global</option>
@@ -184,16 +190,18 @@
   </div>
 
   <div class="filter-item">
-    <label>Rank (ex: 1-10)</label>
+    <label for="filtro6">Rank (ex: 1-10)</label>
     <input
+      id="filtro6"
       placeholder="1-200"
       bind:value={rank}
       title="Intervalo de posições p.ex. 1-10" />
   </div>
 
   <div class="filter-item">
-    <label>Qtd. Músicas</label>
+    <label for="filtro7">Qtd. Músicas</label>
     <input
+      id="filtro7"
       type="number"
       min="1"
       max="20"
@@ -219,6 +227,10 @@
       {chartLimit}
     />
   </div>
+  <!-- <div>
+    <BarChart
+      data={datagraph} {chartLimit}/>
+  </div> -->
 {/if}
 
 {#if currentTrack}
