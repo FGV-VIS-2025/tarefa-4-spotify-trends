@@ -35,15 +35,33 @@
 
   $: topSongs = data.slice(0, chartLimit);
 
-  $: if (topSongs.length > 0) {
-    const topTreeData = {
-      children: [{
-        name: "Top Songs",
-        children: topSongs
-      }]
+  $: if (data.length > 0) {
+    // Aplica o chartLimit antes de agrupar
+    const topSongs = data.slice(0, chartLimit);
+
+    // Agrupa as top N por artista
+    const artistMap = new Map();
+
+    topSongs.forEach(song => {
+      const artistName = song.artist;
+      if (!artistMap.has(artistName)) {
+        artistMap.set(artistName, []);
+      }
+      artistMap.get(artistName).push({
+        title: song.title,
+        total_streams: song.total_streams,
+        trackId: song.trackId
+      });
+    });
+
+    const treeData = {
+      children: Array.from(artistMap, ([name, children]) => ({
+        name,
+        children
+      }))
     };
 
-    const root = d3.hierarchy(topTreeData)
+    const root = d3.hierarchy(treeData)
       .sum(d => d.total_streams)
       .sort((a, b) => b.total_streams - a.total_streams);
 
@@ -76,7 +94,6 @@
       nodes = final;
     });
   }
-
 
   let tooltipEl;
 
