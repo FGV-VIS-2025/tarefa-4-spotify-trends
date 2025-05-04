@@ -33,15 +33,31 @@
       .domain([1, 200]) // Eixo Y fixo de Rank entre 1 e 200
       .range([0, height]); 
 
+    const maxGapDays = 10; // número máximo de dias para considerar a sequência contínua
+
     const lineStreams = d3.line()
+      .defined((d, i, arr) => {
+        if (i === 0) return true;
+        const prevDate = arr[i - 1].date;
+        const currDate = d.date;
+        const diffDays = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+        return diffDays <= maxGapDays;
+      })
       .x(d => x(d.date))
       .y(d => yStreams(d.streams))
-      .curve(d3.curveMonotoneX); 
+      .curve(d3.curveMonotoneX);
 
     const lineRank = d3.line()
+      .defined((d, i, arr) => {
+        if (i === 0) return true;
+        const prevDate = arr[i - 1].date;
+        const currDate = d.date;
+        const diffDays = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+        return diffDays <= maxGapDays;
+      })
       .x(d => x(d.date))
       .y(d => yRank(d.rank))
-      .curve(d3.curveMonotoneX); 
+      .curve(d3.curveMonotoneX);
 
     // Limpa SVG antigo
     d3.select(svg).selectAll("*").remove();
@@ -94,12 +110,12 @@
     g.append('path')
       .datum(parsed)
       .attr('fill', 'none')
-      .attr('stroke', '#1db954') // Cor de linha para Streams
+      .attr('stroke', '#1db954') 
       .attr('stroke-width', 3)
       .attr('stroke-linejoin', 'round')
       .attr('stroke-linecap', 'round')
       .attr('d', lineStreams)
-      .attr('filter', 'url(#drop-shadow)'); // Adiciona sombra
+      .attr('filter', 'url(#drop-shadow)');
 
     // Linha para Rank
     g.append('path')
@@ -131,7 +147,7 @@
 
     focus.append('rect')
       .attr('width', 160)
-      .attr('height', 50)
+      .attr('height', 60)
       .attr('x', 10)
       .attr('y', -22)
       .attr('rx', 4)
@@ -229,7 +245,6 @@
       .style('fill', 'currentColor');
   });
 </script>
-
 
 <!-- <style>
   .tooltip text {
