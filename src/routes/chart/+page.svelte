@@ -14,6 +14,7 @@
   let rank = '';
   let limit = 10;
   let limitNew = 10;
+  let chartLimit = 10;
   let datajson = [];
   let datagraph = []; 
   let loading = false;
@@ -60,17 +61,32 @@
 
     datajson = filteredData;
 
-    const graphData = d3.group(filteredData, d => d.artist);
-    datagraph = Array.from(graphData, ([artist, songs]) => ({
-      name: artist,
-      children: songs.map(song => ({
-        title: song.title,
-        total_streams: +song.streams,
-        trackId: song.url
-      }))
-    }));
+    const allSongs = Array.from(
+      d3.rollup(
+        filteredData,
+        v => ({
+          total_streams: d3.sum(v, d => +d.streams),
+          trackId: v[0].url,
+          artist: v[0].artist
+        }),
+        d => d.title
+      ),
+      ([title, { total_streams, trackId, artist }]) => ({
+        title,
+        total_streams,
+        trackId,
+        artist
+      })
+    );
 
-    limit = limitNew;
+    // Ordena e pega as top 50
+    const top20Songs = allSongs
+      .sort((a, b) => b.total_streams - a.total_streams)
+      .slice(0, 20);
+
+    // Pronto para qualquer gráfico (barras, treemap...)
+    datagraph = top20Songs;
+
     loading = false;
   }
 
@@ -106,79 +122,6 @@
   <title>Spotify Trends</title>
 </svelte:head>
 
-<div class="filters">
-  <div class="filter-item">
-    <label>Data inicial</label>
-    <input
-      type="date"
-      bind:value={start}
-      min="2017-01-01"
-      max="2021-12-20"
-      title="Entre 2017-01-01 e 2021-12-20" />
-  </div>
-
-  <div class="filter-item">
-    <label>Data final</label>
-    <input
-      type="date"
-      bind:value={end}
-      min="2017-01-01"
-      max="2021-12-20"
-      title="Entre 2017-01-01 e 2021-12-20" />
-  </div>
-
-  <div class="filter-item">
-    <label>Música</label>
-    <input
-      placeholder="Começo do título"
-      bind:value={title}
-      title="Busca pelo início do nome da música" />
-  </div>
-
-  <div class="filter-item">
-    <label>Artista</label>
-    <input
-      placeholder="Começo do nome"
-      bind:value={artist}
-      title="Busca pelo início do nome do artista" />
-  </div>
-
-  <div class="filter-item">
-    <label>País</label>
-    <select
-      bind:value={region}
-      title="Escolha o país (Global = nada filtrado)">
-      <option value="">Global</option>
-      {#each regions as r}
-        <option value={r}>{r}</option>
-      {/each}
-    </select>
-  </div>
-
-  <div class="filter-item">
-    <label>Rank (ex: 1-10)</label>
-    <input
-      placeholder="1-200"
-      bind:value={rank}
-      title="Intervalo de posições p.ex. 1-10" />
-  </div>
-
-  <div class="filter-item">
-    <label>Qtd. Músicas</label>
-    <input
-      type="number"
-      min="1"
-      max="50"
-      placeholder="Qtd. Músicas"
-      bind:value={limitNew}
-      title="Máximo de folhas no treemap (1–50)" />
-  </div>
-
-  <div class="filter-item">
-    <button on:click={applyFilters}>🔍 Aplicar filtros</button>
-  </div>
-</div>
-
 <div class="explanation">
   <p>Este treemap soma as streams de cada música que entrou no Top 200 do Spotify entre
      <strong>2017-01-01</strong> e <strong>2021-12-20</strong>. Sem filtro de região, os dados são globais;
@@ -191,6 +134,79 @@
      • <strong>Qtd. Músicas</strong>: Quantas folhas aparecem no treemap.</p>
 </div>
 
+<div class="filters">
+  <div class="filter-item">
+    <label>Data inicial
+    <input
+      type="date"
+      bind:value={start}
+      min="2017-01-01"
+      max="2021-12-20"
+      title="Entre 2017-01-01 e 2021-12-20" /></label>
+  </div>
+
+  <div class="filter-item">
+    <label>Data final
+    <input
+      type="date"
+      bind:value={end}
+      min="2017-01-01"
+      max="2021-12-20"
+      title="Entre 2017-01-01 e 2021-12-20" /></label>
+  </div>
+
+  <div class="filter-item">
+    <label>Música
+    <input
+      placeholder="Começo do título"
+      bind:value={title}
+      title="Busca pelo início do nome da música" /></label>
+  </div>
+
+  <div class="filter-item">
+    <label>Artista
+    <input
+      placeholder="Começo do nome"
+      bind:value={artist}
+      title="Busca pelo início do nome do artista" /></label>
+  </div>
+
+  <div class="filter-item">
+    <label>País
+    <select
+      bind:value={region}
+      title="Escolha o país (Global = nada filtrado)">
+      <option value="">Global</option>
+      {#each regions as r}
+        <option value={r}>{r}</option>
+      {/each}
+    </select></label>
+  </div>
+
+  <div class="filter-item">
+    <label>Rank (ex: 1-10)
+    <input
+      placeholder="1-200"
+      bind:value={rank}
+      title="Intervalo de posições p.ex. 1-10" /></label>
+  </div>
+
+  <div class="filter-item">
+    <label>Qtd. Músicas
+    <input
+      type="number"
+      min="1"
+      max="20"
+      placeholder="Qtd. Músicas"
+      bind:value={chartLimit}
+      title="Máximo de folhas no treemap (1–50)" /></label>
+  </div>
+
+  <div class="filter-item">
+    <button on:click={applyFilters}>🔍 Aplicar filtros</button>
+  </div>
+</div>
+
 {#if loading}
   <p>Carregando…</p>
 {:else}
@@ -200,7 +216,7 @@
       data={datagraph}
       on:playtrack={(e) => play(e.detail)}
       on:showtrend={(e) => showTrend(e.detail)}
-      {limit}
+      {chartLimit}
     />
   </div>
 {/if}
@@ -318,7 +334,7 @@
     margin-bottom: 1rem;
   }
 
-
+  /*
   .grid {
     display: flex;
     flex-wrap: wrap;
@@ -338,6 +354,7 @@
   .card:hover {
     background: #f0f0f0;
   }
+  */
 
   .chart-container {
     margin-bottom: 2rem;
