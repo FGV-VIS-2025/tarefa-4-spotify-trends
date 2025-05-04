@@ -3,10 +3,10 @@
   import * as d3 from 'd3';
 
   export let data = [];
-  export let limit = 10; // Número máximo de folhas (nós) a serem exibidas no Treemap
+  export let chartLimit = 10; // Número máximo de folhas (nós) a serem exibidas no Treemap
 
   let nodes = [];
-  let images = {};
+  const thumbnailCache = new Map();
   let hoveredId = null;
   let selectedId = null;
 
@@ -33,94 +33,50 @@
     }
   }
 
-  // Transformando os dados em formato adequado para o d3.treemap()
-  $: if (data.length > 0) {
-    const artistData = [];
+  $: topSongs = data.slice(0, chartLimit);
 
-    data.forEach(artist => {
-      const artistName = artist.name;
-      const songData = {};
-
-      artist.children.forEach(song => {
-        const songTitle = song.title;
-        if (songData[songTitle]) {
-          songData[songTitle].total_streams += song.total_streams;
-        } else {
-          songData[songTitle] = {
-            title: songTitle,
-            total_streams: song.total_streams,
-            trackId: song.trackId
-          };
-        }
-      });
-
-      artistData.push({
-        name: artistName,
-        children: Object.values(songData)
-      });
-    });
-
-    const treeData = {
-      children: artistData.map(artist => ({
-        name: artist.name,
-        children: artist.children.map(song => ({
-          title: song.title,
-          total_streams: song.total_streams,
-          trackId: song.trackId
-        }))
-      }))
-    };
-
-    let allSongs = [];
-    treeData.children.forEach(artist => {
-      allSongs = allSongs.concat(artist.children); 
-    });
-
-    allSongs.sort((a, b) => b.total_streams - a.total_streams);
-    const topSongs = allSongs.slice(0, limit);
-
+  $: if (topSongs.length > 0) {
     const topTreeData = {
-      children: treeData.children.map(artist => {
-        const topSongsForArtist = artist.children.filter(song =>
-          topSongs.some(topSong => topSong.trackId === song.trackId)
-        );
-
-        return {
-          name: artist.name,
-          children: topSongsForArtist
-        };
-      }).filter(artist => artist.children.length > 0)
+      children: [{
+        name: "Top Songs",
+        children: topSongs
+      }]
     };
 
     const root = d3.hierarchy(topTreeData)
-      .sum(d => d.total_streams) 
-      .sort((a, b) => b.total_streams - a.total_streams); 
+      .sum(d => d.total_streams)
+      .sort((a, b) => b.total_streams - a.total_streams);
 
     d3.treemap()
       .size([width, height])
-      .padding(1)
-      (root);
+      .padding(1)(root);
 
-    const leafNodes = root.leaves().slice(0, limit);
+    const leafNodes = root.leaves();
 
     Promise.all(
       leafNodes.map(async node => {
         const id = node.data.trackId;
-        try {
-          const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${id}`);
-          if (res.ok) {
-            const json = await res.json();
-            node.data.thumbnail = json.thumbnail_url;
+        if (!thumbnailCache.has(id)) {
+          try {
+            const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${id}`);
+            if (res.ok) {
+              const json = await res.json();
+              thumbnailCache.set(id, json.thumbnail_url);
+            }
+          } catch (err) {
+            console.error(`Erro ao buscar thumbnail de ${id}:`, err);
+            thumbnailCache.set(id, null);
           }
-        } catch (err) {
-          console.error(`Erro ao buscar thumbnail de ${id}:`, err);
         }
+
+        node.data.thumbnail = thumbnailCache.get(id);
         return node;
       })
     ).then(final => {
       nodes = final;
     });
   }
+
 
   let tooltipEl;
 
