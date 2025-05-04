@@ -229,3 +229,12 @@
       .style('fill', 'currentColor');
   });
 </script>
+
+<!-- <style>
+  .tooltip text {
+    font-size: 12px;
+    pointer-events: none;
+  }
+</style> -->
+
+<svg bind:this={svg}></svg>
