@@ -6,7 +6,7 @@
   export let chartLimit = 10; // Número máximo de folhas (nós) a serem exibidas no Treemap
 
   let nodes = [];
-  let images = {};
+  const thumbnailCache = new Map();
   let hoveredId = null;
   let selectedId = null;
 
@@ -33,13 +33,9 @@
     }
   }
 
-  $: if (data.length > 0) {
-    console.log("Dados do treemap");
-    console.log(data);
-    console.log("limit do treemap");
-    console.log(chartLimit);
-    const topSongs = data.slice(0, chartLimit);
+  $: topSongs = data.slice(0, chartLimit);
 
+  $: if (topSongs.length > 0) {
     const topTreeData = {
       children: [{
         name: "Top Songs",
@@ -60,21 +56,27 @@
     Promise.all(
       leafNodes.map(async node => {
         const id = node.data.trackId;
-        try {
-          const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${id}`);
-          if (res.ok) {
-            const json = await res.json();
-            node.data.thumbnail = json.thumbnail_url;
+        if (!thumbnailCache.has(id)) {
+          try {
+            const res = await fetch(`https://open.spotify.com/oembed?url=https://open.spotify.com/track/${id}`);
+            if (res.ok) {
+              const json = await res.json();
+              thumbnailCache.set(id, json.thumbnail_url);
+            }
+          } catch (err) {
+            console.error(`Erro ao buscar thumbnail de ${id}:`, err);
+            thumbnailCache.set(id, null);
           }
-        } catch (err) {
-          console.error(`Erro ao buscar thumbnail de ${id}:`, err);
         }
+
+        node.data.thumbnail = thumbnailCache.get(id);
         return node;
       })
     ).then(final => {
       nodes = final;
     });
   }
+
 
   let tooltipEl;
 
