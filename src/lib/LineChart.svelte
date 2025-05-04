@@ -94,12 +94,12 @@
     g.append('path')
       .datum(parsed)
       .attr('fill', 'none')
-      .attr('stroke', '#1db954') // Cor de linha para Streams
+      .attr('stroke', '#1db954') 
       .attr('stroke-width', 3)
       .attr('stroke-linejoin', 'round')
       .attr('stroke-linecap', 'round')
       .attr('d', lineStreams)
-      .attr('filter', 'url(#drop-shadow)'); // Adiciona sombra
+      .attr('filter', 'url(#drop-shadow)');
 
     // Linha para Rank
     g.append('path')
@@ -229,13 +229,3 @@
       .style('fill', 'currentColor');
   });
 </script>
-
-
-<!-- <style>
-  .tooltip text {
-    font-size: 12px;
-    pointer-events: none;
-  }
-</style> -->
-
-<svg bind:this={svg}></svg>
