@@ -131,7 +131,7 @@
 
     focus.append('rect')
       .attr('width', 160)
-      .attr('height', 50)
+      .attr('height', 60)
       .attr('x', 10)
       .attr('y', -22)
       .attr('rx', 4)
