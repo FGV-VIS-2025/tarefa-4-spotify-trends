@@ -33,15 +33,31 @@
       .domain([1, 200]) // Eixo Y fixo de Rank entre 1 e 200
       .range([0, height]); 
 
+    const maxGapDays = 10; // número máximo de dias para considerar a sequência contínua
+
     const lineStreams = d3.line()
+      .defined((d, i, arr) => {
+        if (i === 0) return true;
+        const prevDate = arr[i - 1].date;
+        const currDate = d.date;
+        const diffDays = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+        return diffDays <= maxGapDays;
+      })
       .x(d => x(d.date))
       .y(d => yStreams(d.streams))
-      .curve(d3.curveMonotoneX); 
+      .curve(d3.curveMonotoneX);
 
     const lineRank = d3.line()
+      .defined((d, i, arr) => {
+        if (i === 0) return true;
+        const prevDate = arr[i - 1].date;
+        const currDate = d.date;
+        const diffDays = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+        return diffDays <= maxGapDays;
+      })
       .x(d => x(d.date))
       .y(d => yRank(d.rank))
-      .curve(d3.curveMonotoneX); 
+      .curve(d3.curveMonotoneX);
 
     // Limpa SVG antigo
     d3.select(svg).selectAll("*").remove();
