@@ -5,6 +5,7 @@
   import BarChart from '../../lib/BarChart.svelte';
   import { base } from '$app/paths';
   import * as d3 from 'd3';
+  let selectedTitle = ''; 
 
   // default mínimo/máximo
   let start = '2017-01-01';
@@ -110,12 +111,16 @@
   let trendData = [];
 
   function showTrend({ title, artist }) {
-    const filtered = datajson.filter(d => d.title === title && d.artist === artist);
-    trendData = filtered.map(d => ({
-      date: new Date(d.date),
-      streams: +d.streams,
-      rank: d.rank
-    })).sort((a, b) => a.date - b.date);
+    selectedTitle = title;  // ← atualiza o título
+    const filtered = datajson
+      .filter(d => d.title === title && d.artist === artist)
+      .map(d => ({
+        date: new Date(d.date),
+        streams: +d.streams,
+        rank: d.rank
+      }))
+      .sort((a, b) => a.date - b.date);
+    trendData = filtered;
   }
 </script>
 
@@ -123,10 +128,14 @@
   <title>Spotify Trends</title>
 </svelte:head>
 
+<h1>Treemap Chart</h1>
+
 <div class="explanation">
   <p>Este treemap soma as streams de cada música que entrou no Top 200 do Spotify entre
      <strong>2017-01-01</strong> e <strong>2021-12-20</strong>. Sem filtro de região, os dados são globais;
-     com filtro, considera só as streams no Top 200 daquele país.</p>
+     com filtro, considera só as streams no Top 200 daquele país. Clicando em alguma das músicas você pode não só escutá-las, 
+     mas também poder observar o número de streams (e posição no top 200) que essa música teve durante o período
+     de tempo definido!</p>
   <p><strong>Filtros:</strong><br>
      • <strong>Datas</strong>: Valores entre 2017-01-01 e 2021-12-20.<br>
      • <strong>Música / Artista</strong>: Busca pelo começo do nome.<br>
@@ -246,7 +255,8 @@
 
 {#if trendData.length}
   <h3 class="text-lg font-semibold mt-6">
-    Evolução de streams: {trendData[0].date.toLocaleDateString()} → {trendData.at(-1).date.toLocaleDateString()}
+    Evolução de streams de “{selectedTitle}”: 
+    {trendData[0].date.toLocaleDateString()} → {trendData.at(-1).date.toLocaleDateString()}
   </h3>
   <LineChart data={trendData} />
 {/if}
